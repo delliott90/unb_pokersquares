@@ -260,24 +260,24 @@ public class PokerSquares {
 
 
 
-                // Demonstration of tournament evaluation (2 players, 3 point systems, 10 x 30s games for each of the 2*3=6 player-system pairs)
-                System.out.println("\n\nTournament evaluation demo:");
+		// Demonstration of tournament evaluation (2 players, 3 point systems, 10 x 30s games for each of the 2*3=6 player-system pairs)
+		System.out.println("\n\nTournament evaluation demo:");
 
-                ArrayList<PokerSquaresPlayer> players = new ArrayList<PokerSquaresPlayer>();
-                players.add(new RandomPlayer());
-                players.add(new RandomPlayer());
-//                players.add(new FlushPlayer());
+		ArrayList<PokerSquaresPlayer> players = new ArrayList<PokerSquaresPlayer>();
+		players.add(new RandomPlayer());
+		players.add(new RandomPlayer());
+//		players.add(new FlushPlayer());
 
-                ArrayList<PokerSquaresPointSystem> systems = new ArrayList<PokerSquaresPointSystem>();
-                PokerSquaresPointSystem.setSeed(42L);
-                systems.add(PokerSquaresPointSystem.getBritishPointSystem());
-                systems.add(PokerSquaresPointSystem.getAmericanPointSystem());
-                systems.add(PokerSquaresPointSystem.getRandomPointSystem());
-//                systems.add(PokerSquaresPointSystem.getSingleHandPointSystem(PokerHand.FLUSH.id));  // 1 point for flushes, 0 for all other hands
-//                systems.add(PokerSquaresPointSystem.getSingleHandPointSystem());   // 1 point for a randomly chosen hand type, 0 for all other hands
-//                systems.add(PokerSquaresPointSystem.getHypercornerPointSystem());  // each hand type scored as -1 or 1, with equal probability
+		ArrayList<PokerSquaresPointSystem> systems = new ArrayList<PokerSquaresPointSystem>();
+		PokerSquaresPointSystem.setSeed(42L);
+		systems.add(PokerSquaresPointSystem.getBritishPointSystem());
+		systems.add(PokerSquaresPointSystem.getAmericanPointSystem());
+		systems.add(PokerSquaresPointSystem.getRandomPointSystem());
+//		systems.add(PokerSquaresPointSystem.getSingleHandPointSystem(PokerHand.FLUSH.id));  // 1 point for flushes, 0 for all other hands
+//		systems.add(PokerSquaresPointSystem.getSingleHandPointSystem());   // 1 point for a randomly chosen hand type, 0 for all other hands
+//		systems.add(PokerSquaresPointSystem.getHypercornerPointSystem());  // each hand type scored as -1 or 1, with equal probability
 
 
-                PokerSquares.playTournament(players, systems, 10, 0L);  // play 10 games for each player under each scoring system
+		PokerSquares.playTournament(players, systems, 10, 0L);  // play 10 games for each player under each scoring system
 	}
 }

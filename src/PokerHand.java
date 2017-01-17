@@ -37,9 +37,9 @@ public enum PokerHand {
 		int maxOfAKind = 0;
 		int[] rankCountCounts = new int[hand.length + 1];
 		for (int count : rankCounts) {
-				rankCountCounts[count]++;
-				if (count > maxOfAKind)
-					maxOfAKind = count;
+			rankCountCounts[count]++;
+			if (count > maxOfAKind)
+				maxOfAKind = count;
 			}
 			
 		// Flush check
