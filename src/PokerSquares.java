@@ -250,7 +250,8 @@ public class PokerSquares {
 		PokerSquaresPointSystem system = PokerSquaresPointSystem.getBritishPointSystem();
 		System.out.println(system);
 //		new PokerSquares(new RandomPlayer(), system).play();
-        new PokerSquares(new FlushPlayer(), system).play();
+//        new PokerSquares(new FlushPlayer(), system).play();
+		new PokerSquares(new GreedyMCPlayer(), system).play();
 
 
 
@@ -267,7 +268,8 @@ public class PokerSquares {
 		ArrayList<PokerSquaresPlayer> players = new ArrayList<PokerSquaresPlayer>();
 		players.add(new RandomPlayer());
 //		players.add(new RandomPlayer());
-		players.add(new FlushPlayer());
+//		players.add(new FlushPlayer());
+		players.add(new GreedyMCPlayer());
 
 		ArrayList<PokerSquaresPointSystem> systems = new ArrayList<PokerSquaresPointSystem>();
 		PokerSquaresPointSystem.setSeed(42L);
