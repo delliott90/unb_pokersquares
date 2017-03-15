@@ -250,9 +250,9 @@ public class PokerSquares {
 		PokerSquaresPointSystem system = PokerSquaresPointSystem.getBritishPointSystem();
 		System.out.println(system);
 //		new PokerSquares(new RandomPlayer(), system).play();
-//        new PokerSquares(new FlushPlayer(), system).play();
-		new PokerSquares(new GreedyMCPlayer(), system).play();
-
+//      new PokerSquares(new FlushPlayer(), system).play();
+//		new PokerSquares(new GreedyMCPlayer(), system).play();
+		new PokerSquares(new SearchTreePlayer(), system).play();
 
 
 		// Demonstration of batch game play (30 seconds per game)
@@ -269,18 +269,19 @@ public class PokerSquares {
 		players.add(new RandomPlayer());
 //		players.add(new RandomPlayer());
 //		players.add(new FlushPlayer());
-		players.add(new GreedyMCPlayer());
+//		players.add(new GreedyMCPlayer());
+		players.add(new SearchTreePlayer());
 
 		ArrayList<PokerSquaresPointSystem> systems = new ArrayList<PokerSquaresPointSystem>();
 		PokerSquaresPointSystem.setSeed(42L);
 		systems.add(PokerSquaresPointSystem.getBritishPointSystem());
-		systems.add(PokerSquaresPointSystem.getAmericanPointSystem());
-		systems.add(PokerSquaresPointSystem.getRandomPointSystem());
+//		systems.add(PokerSquaresPointSystem.getAmericanPointSystem());
+//		systems.add(PokerSquaresPointSystem.getRandomPointSystem());
 //		systems.add(PokerSquaresPointSystem.getSingleHandPointSystem(PokerHand.FLUSH.id));  // 1 point for flushes, 0 for all other hands
 //		systems.add(PokerSquaresPointSystem.getSingleHandPointSystem());   // 1 point for a randomly chosen hand type, 0 for all other hands
 //		systems.add(PokerSquaresPointSystem.getHypercornerPointSystem());  // each hand type scored as -1 or 1, with equal probability
 
 
-		PokerSquares.playTournament(players, systems, 10, 0L);  // play 10 games for each player under each scoring system
+		PokerSquares.playTournament(players, systems, 20, 0L);  // play 10 games for each player under each scoring system
 	}
 }
