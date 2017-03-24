@@ -13,6 +13,7 @@ public class SearchTreePlayer implements PokerSquaresPlayer {
     private Card[][] grid = new Card[SIZE][SIZE]; // grid with Card objects or null (for empty positions)
     private PokerSquaresPointSystem system; // point system
     private int depthLimit = 2;
+    private Card[] cardsInDeck = new Card[NUM_CARDS];
 	
 	/* (non-Javadoc)
 	 * @see PokerSquaresPlayer#init()
@@ -23,7 +24,7 @@ public class SearchTreePlayer implements PokerSquaresPlayer {
         for (int row = 0; row < SIZE; row++)
             for (int col = 0; col < SIZE; col++)
                 grid[row][col] = null;
-
+        cardsInDeck = Card.getAllCards();
 	}
 
 	/* (non-Javadoc)
@@ -37,61 +38,131 @@ public class SearchTreePlayer implements PokerSquaresPlayer {
         int cardrank = card.getRank();
         int cardsuit = card.getSuit(); // 0-3
 
-        return findBestPosition(card, depthLimit);
+        int[] best = depthSearch(card, depthLimit);
+        placeCard(card, best[0], best[1], grid); // Place card on main grid
 
-    }
-
-    private int[] findBestPosition(Card card, int depthLimit){
-        int currentScore = system.getScore(grid);
-        int bestScore = currentScore;
-//        System.out.println("Initial Scores starting at " + currentScore);
-	    int[] playPosition = new int[2];
-
-        int[] best = depthSearch(card, depthLimit, currentScore, bestScore);
-
-        placeCard(card, best[0], best[1]);
-        playPosition[0] = best[0];
-        playPosition[1] = best[1];
+        int[] playPosition = {best[0], best[1]};
+        System.out.println("Card: " + card + " Position: " + best[0] + ":" + best[1]);
         return playPosition;
+
     }
 
-    private void placeCard(Card card, int row, int col){
-        grid[row][col] = card;
+    private Card[][] copyGrid(Card[][] inputGrid){
+	    Card[][] outputGrid = new Card[inputGrid.length][inputGrid.length];
+	    for(int i=0; i< inputGrid.length; i++){
+	        System.arraycopy(inputGrid[i], 0, outputGrid[i], 0, inputGrid.length);
+        }
+        return outputGrid;
     }
-    private void removeCard(int row, int col){
+    private void placeCard(Card card, int row, int col, Card[][] grid){ grid[row][col] = card; }
+    private void removeCard(int row, int col, Card[][] grid){
         grid[row][col] = null;
     }
 
-    private int[] depthSearch(Card card, int depthLimit, int currentScore, int bestScore){
-        // iterate over each empty grid space and choose the one with the best score or last empty spot
-        int bestRow = -1;
-        int bestCol = -1;
+    private int[] depthSearch(Card card, int depthLimit){
+
+        Card[][] tempGrid = copyGrid(grid);
+        Card[] remainingCards = new Card[cardsInDeck.length];
+        System.arraycopy(cardsInDeck, 0, remainingCards, 0, cardsInDeck.length);
+
+        System.out.println("TEMP GRID");
+        system.printGrid(tempGrid);
+
+        int[] bestSpotFound = combinedRecursiveDepthSearch(card, 1, remainingCards, tempGrid, system.getScore(tempGrid));
+        int bestRowFound = bestSpotFound[0];
+        int bestColFound = bestSpotFound[1];
+        int[] bestSpot = {bestRowFound, bestColFound};
+
+        // remove current card from remaining cards in deck
+        int i=0;
+        while(!card.equals(cardsInDeck[i])){
+            i++;
+        }
+        cardsInDeck[i] = null;
+
+        return bestSpot;
+    }
+
+
+    private int[] combinedRecursiveDepthSearch(Card card, int currentDepth, Card[] remainingCards, Card[][] tempGrid, int bestScore){
+        // Todo: How to track the best spots? These seem to get overwritten.
+        int bestRow = 0;
+        int bestCol = 0;
+        // Default best position to first empty spot on grid
+        bestCoordinateInitialization:
+        for(int row = 0; row < SIZE; row++) {
+            for (int col = 0; col < SIZE; col++) {
+                if(tempGrid[row][col] == null){
+                    bestRow = row;
+                    bestCol = col;
+                    break bestCoordinateInitialization;
+                }
+            }
+        }
+        int currentScore = 0;
+
+        System.out.println("Current Deck: " + printRemainingCards(remainingCards));
+
+        // iterate over each empty grid space and choose the one with the best score
         for(int row = 0; row < SIZE; row++){
             for(int col = 0; col < SIZE; col++){
-                if(grid[row][col] == null){
-                    if(bestRow < 0 && bestCol < 0){
-                        bestRow = row;
-                        bestCol = col;
+                if(tempGrid[row][col] == null){
+                    placeCard(card, row, col, tempGrid);
+
+                    System.out.println("Trying card " + card + " at " + row + ":" + col);
+                    system.printGrid(tempGrid);
+
+
+                    if(currentDepth < depthLimit){
+                        // remove current card from the temp deck
+                        int i=0;
+                        while(!card.equals(remainingCards[i])){
+                            i++;
+                        }
+                        remainingCards[i] = null;
+                        Card nextCard = remainingCards[0];
+                        // Find the next card in the temp deck
+                        for(int x=0; x<remainingCards.length; x++){
+                            if(remainingCards[x] != null){
+                                nextCard = remainingCards[x];
+                                break;
+                            }
+                        }
+                        currentDepth++;
+                        // Recursive call
+                        return combinedRecursiveDepthSearch(nextCard, currentDepth, remainingCards, tempGrid, bestScore);
+
+
                     }
-                    placeCard(card, row, col);
-//                    System.out.println("Placed card " + card + " at " + row + ":" + col);
-                    // Todo: recursion call
-                    currentScore = system.getScore(grid);
+                    // Score current grid state
+                    currentScore = system.getScore(tempGrid);
+
+                    System.out.println("Grid Score: " + currentScore);
+
+                    // Find best spot based on current grid score
                     if(currentScore > bestScore){
-                        bestScore = currentScore;
+                        bestScore = currentScore; // Todo: This will have to be bubbled up from below
                         bestRow = row;
                         bestCol = col;
-//                            System.out.println("Best score is now " + bestScore + " BR: " + bestRow + " BC: " + bestCol);
-                        removeCard(row, col);
+                        removeCard(row, col, tempGrid);
                     }
                     else{
-                        removeCard(row, col);
+                        removeCard(row, col, tempGrid);
                     }
                 }
             }
         }
-        int[] bestSpot = {bestRow, bestCol};
+        int[] bestSpot = {bestRow, bestCol, bestScore};
         return bestSpot;
+    }
+
+
+    private String printRemainingCards(Card[] deck){
+        String cardList = "";
+        for(int i=0; i<deck.length; i++){
+            cardList += deck[i] + ":";
+        }
+        return cardList;
     }
 
     /* (non-Javadoc)
