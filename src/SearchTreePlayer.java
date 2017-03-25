@@ -66,16 +66,32 @@ public class SearchTreePlayer implements PokerSquaresPlayer {
         return remainingCards;
     }
 
-    private int[] findFirstEmptySpot(Card[][] grid){
+    private int[] findFirstEmptySpot(Card[][] grid, boolean random){
         int emptyRow = 0;
         int emptyCol = 0;
-        bestCoordinateInitialization:
-        for(int row = 0; row < SIZE; row++) {
-            for (int col = 0; col < SIZE; col++) {
+        boolean spotFound = false;
+        if(random){
+            randomCoordinateInitialization:
+            for(int i=0; i < SIZE; i++){
+                int row = (int)(Math.random() * 5);
+                int col = (int)(Math.random() * 5);
                 if(grid[row][col] == null){
                     emptyRow = row;
                     emptyCol = col;
-                    break bestCoordinateInitialization;
+                    spotFound = true;
+                    break randomCoordinateInitialization;
+                }
+            }
+        }
+        if(!spotFound){
+            firstCoordinateInitialization:
+            for(int row = 0; row < SIZE; row++) {
+                for (int col = 0; col < SIZE; col++) {
+                    if(grid[row][col] == null){
+                        emptyRow = row;
+                        emptyCol = col;
+                        break firstCoordinateInitialization;
+                    }
                 }
             }
         }
@@ -99,11 +115,23 @@ public class SearchTreePlayer implements PokerSquaresPlayer {
         System.out.println("NEXT PLAY GRID STATE WITH CARD " + card);
         system.printGrid(tempGrid);
 
-        int[] rootPosition = findFirstEmptySpot(tempGrid);
+        int[] rootPosition = findFirstEmptySpot(grid, true);
+
         Card[] remainingCards = setRemainingCards();
         remainingCards = removeCardFromRemaining(card, remainingCards);
 
         int[] bestSpotFound = placeAndScore(card, card, tempGrid, 1, remainingCards, rootPosition);
+//        int[] bestSpotFound ={0, 0};
+//        for(int row = 0; row < SIZE; row++) {
+//            for (int col = 0; col < SIZE; col++) {
+//                if (grid[row][col] == null) {
+//                    rootPosition[0] = row;
+//                    rootPosition[1] = col;
+//                    bestSpotFound = placeAndScore(card, card, tempGrid, 1, remainingCards, rootPosition);
+//                }
+//            }
+//        }
+
 
         int bestRowFound = bestSpotFound[0];
         int bestColFound = bestSpotFound[1];
@@ -117,9 +145,8 @@ public class SearchTreePlayer implements PokerSquaresPlayer {
 
 
     private int[] placeAndScore(Card card, Card rootCard, Card[][] grid, int currentDepth, Card[] remainingCards, int[] rootPosition){
-        int[] firstEmpty = findFirstEmptySpot(grid);
-        int bestRow = firstEmpty[0];
-        int bestCol = firstEmpty[1];
+        int bestRow = rootPosition[0];
+        int bestCol = rootPosition[1];
 
         int rootRow = rootPosition[0];
         int rootCol = rootPosition[1];
