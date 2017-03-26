@@ -15,6 +15,7 @@ public class SearchTreePlayer implements PokerSquaresPlayer {
     private final int DEPTH_LIMIT = 2;
     private Card[] cardsInDeck = new Card[NUM_CARDS];
     private int[] bestScoreAndPosition = new int[3]; // row, col, score
+    private int cardsOnGrid = 0;
 	
 	/* (non-Javadoc)
 	 * @see PokerSquaresPlayer#init()
@@ -26,7 +27,8 @@ public class SearchTreePlayer implements PokerSquaresPlayer {
             for (int col = 0; col < SIZE; col++)
                 grid[row][col] = null;
         cardsInDeck = Card.getAllCards();
-        clearBestScorePosition();
+        initializeBestScorePosition(grid);
+        cardsOnGrid = 0;
 	}
 
 	/* (non-Javadoc)
@@ -40,13 +42,13 @@ public class SearchTreePlayer implements PokerSquaresPlayer {
         int cardrank = card.getRank();
         int cardsuit = card.getSuit(); // 0-3
 
-        clearBestScorePosition();
+        initializeBestScorePosition(grid);
 
-        int[] best = depthSearch(card, DEPTH_LIMIT);
-        placeCard(card, best[0], best[1], grid); // Place card on main grid
+        depthSearch(card);
 
-        int[] playPosition = {best[0], best[1]};
-//        System.out.println("Card: " + card + " Position: " + best[0] + ":" + best[1]);
+        placeCard(card, bestScoreAndPosition[0], bestScoreAndPosition[1], grid); // Place card on main grid
+        int[] playPosition = {bestScoreAndPosition[0], bestScoreAndPosition[1]};
+        cardsOnGrid++;
         return playPosition;
 
     }
@@ -69,10 +71,11 @@ public class SearchTreePlayer implements PokerSquaresPlayer {
         return remainingCards;
     }
 
-    private void clearBestScorePosition(){
-        for (int x = 0; x < bestScoreAndPosition.length; x++){
-            bestScoreAndPosition[x] = 0;
-        }
+    private void initializeBestScorePosition(Card[][] grid){
+        int[] emptySpot = findFirstEmptySpot(grid, false);
+        bestScoreAndPosition[0] = emptySpot[0];
+        bestScoreAndPosition[1] = emptySpot[1];
+        bestScoreAndPosition[2] = 0;
     }
 
     private void scoreGrid(int row, int col, Card[][] grid){
@@ -126,7 +129,7 @@ public class SearchTreePlayer implements PokerSquaresPlayer {
         return remainingCards;
     }
 
-    private int[] depthSearch(Card card, int depthLimit){
+    private void depthSearch(Card card){
 
         Card[][] tempGrid = copyGrid(grid);
 
@@ -144,7 +147,7 @@ public class SearchTreePlayer implements PokerSquaresPlayer {
         if(DEPTH_LIMIT==1){
             // Todo: rootPosition will need to be updated for each iteration for tracking
             rootPosition = findFirstEmptySpot(tempGrid, false);
-            bestSpotFound = placeAndScore(card, card, tempGrid, 1, remainingCards, rootPosition);
+            placeAndScore(card, tempGrid, 1, remainingCards, rootPosition, true);
         }
         else{
             for(int row = 0; row < SIZE; row++) {
@@ -154,50 +157,49 @@ public class SearchTreePlayer implements PokerSquaresPlayer {
                         rootPosition[0] = row;
                         rootPosition[1] = col;
                         System.out.println("OUTER CHECK FOR " + card + " at " + row + ":" + col);
-                        bestSpotFound = placeAndScore(card, card, tempGrid, 1, remainingCards, rootPosition);
+                        placeAndScore(card, tempGrid, 1, remainingCards, rootPosition, true);
                     }
                 }
             }
         }
-
-        int bestRowFound = bestSpotFound[0];
-        int bestColFound = bestSpotFound[1];
-        int[] bestSpot = {bestRowFound, bestColFound};
-
         // remove current card from remaining cards in deck
         removeCardFromRemaining(card, cardsInDeck);
 
-        return bestSpot;
     }
 
 
-    private int[] placeAndScore(Card card, Card rootCard, Card[][] grid, int currentDepth, Card[] remainingCards, int[] rootPosition){
+    private void placeAndScore(Card card, Card[][] grid, int currentDepth, Card[] remainingCards, int[] rootPosition, boolean placingRoot){
 
         if(currentDepth >= DEPTH_LIMIT){
-            for(int row = 0; row < SIZE; row++) {
-                for (int col = 0; col < SIZE; col++) {
-                    if (grid[row][col] == null && card != null) {
-                        placeCard(card, row, col, grid);
-                        system.printGrid(grid);
-                        System.out.println("");
-//                        scoreGrid(rootPosition[0], rootPosition[1], grid);
-                        removeCard(row, col, grid);
+            if(cardsOnGrid < 1 || cardsOnGrid == NUM_POS - 1){
+                return;
+            }
+            else {
+                for (int row = 0; row < SIZE; row++) {
+                    for (int col = 0; col < SIZE; col++) {
+                        if (grid[row][col] == null && card != null) {
+                            placeCard(card, row, col, grid);
+                            system.printGrid(grid);
+                            System.out.println("");
+                            if(placingRoot){
+                                scoreGrid(row, col, grid);
+                            }
+                            else{
+                                scoreGrid(rootPosition[0], rootPosition[1], grid);
+                            }
+                            removeCard(row, col, grid);
+                        }
                     }
                 }
             }
-
         }
         else{
             placeCard(card, rootPosition[0], rootPosition[1], grid);
             currentDepth ++;
-            for (int i = 0; i < remainingCards.length/4; i++) {
-                placeAndScore(remainingCards[i], rootCard, grid, currentDepth, remainingCards, rootPosition);
+            for (int i = 0; i < remainingCards.length/3; i++) {
+                placeAndScore(remainingCards[i], grid, currentDepth, remainingCards, rootPosition, false);
             }
         }
-
-        int score = 0;
-        int[] bestSpot = {rootPosition[0], rootPosition[1], score};
-        return bestSpot;
 
     }
 
