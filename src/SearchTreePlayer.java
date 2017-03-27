@@ -43,12 +43,18 @@ public class SearchTreePlayer implements PokerSquaresPlayer {
         int cardsuit = card.getSuit(); // 0-3
 
         initializeBestScorePosition(grid);
+        cardsOnGrid++;
 
-        depthSearch(card);
+        // EXPECTIMAX otherwise don't need return value
+        int[] bestPosition = depthSearch(card);
 
         placeCard(card, bestScoreAndPosition[0], bestScoreAndPosition[1], grid); // Place card on main grid
         int[] playPosition = {bestScoreAndPosition[0], bestScoreAndPosition[1]};
-        cardsOnGrid++;
+
+// EXPECTIMAX
+//        placeCard(card, bestPosition[0], bestPosition[1], grid); // Place card on main grid
+//        int[] playPosition = {bestPosition[0], bestPosition[1]};
+
         return playPosition;
 
     }
@@ -60,15 +66,13 @@ public class SearchTreePlayer implements PokerSquaresPlayer {
         }
         return outputGrid;
     }
-    private void placeCard(Card card, int row, int col, Card[][] grid){ grid[row][col] = card; }
-    private void removeCard(int row, int col, Card[][] grid){
-        grid[row][col] = null;
+
+    private void placeCard(Card card, int row, int col, Card[][] grid){
+        grid[row][col] = card;
     }
 
-    private Card[] setRemainingCards(){
-        Card[] remainingCards = new Card[cardsInDeck.length];
-        System.arraycopy(cardsInDeck, 0, remainingCards, 0, cardsInDeck.length);
-        return remainingCards;
+    private void removeCard(int row, int col, Card[][] grid){
+        grid[row][col] = null;
     }
 
     private void initializeBestScorePosition(Card[][] grid){
@@ -78,13 +82,32 @@ public class SearchTreePlayer implements PokerSquaresPlayer {
         bestScoreAndPosition[2] = 0;
     }
 
-    private void scoreGrid(int row, int col, Card[][] grid){
+    private void scoreGridDirectly(int row, int col, Card[][] grid){
         int stateScore = system.getScore(grid);
         if (bestScoreAndPosition[2] < stateScore){
             bestScoreAndPosition[0] = row;
             bestScoreAndPosition[1] = col;
             bestScoreAndPosition[2] = stateScore;
         }
+    }
+
+    // This method gets hit for every terminal node
+    // EXPECTIMAX
+    private int scoreGrid(int row, int col, Card[][] grid, int terminalHighScore){
+        int stateScore = system.getScore(grid);
+
+        if(terminalHighScore < stateScore){
+            terminalHighScore = stateScore;
+        }
+
+
+        if (bestScoreAndPosition[2] < stateScore){
+            bestScoreAndPosition[0] = row;
+            bestScoreAndPosition[1] = col;
+            bestScoreAndPosition[2] = stateScore;
+        }
+
+        return terminalHighScore;
     }
 
     private int[] findFirstEmptySpot(Card[][] grid, boolean random){
@@ -129,27 +152,29 @@ public class SearchTreePlayer implements PokerSquaresPlayer {
         return remainingCards;
     }
 
-    private void depthSearch(Card card){
+    private int[] depthSearch(Card card){
 
         Card[][] tempGrid = copyGrid(grid);
 
         System.out.println("NEXT PLAY GRID STATE WITH CARD " + card);
 
-        Card[] remainingCards = setRemainingCards();
-        remainingCards = removeCardFromRemaining(card, remainingCards);
+        // remove current card from remaining cards in deck
+        removeCardFromRemaining(card, cardsInDeck);
 
 //        int[] rootPosition = findFirstEmptySpot(grid, true);
 //        int[] bestSpotFound = placeAndScore(card, card, tempGrid, 1, remainingCards, rootPosition);
 
         int[] rootPosition = new int[2];
-        int[] bestSpotFound ={0, 0};
+        int[] bestSpotFound = findFirstEmptySpot(tempGrid, false);
+        double bestScore = 0.0; // EXPECTIMAX
 
         if(DEPTH_LIMIT==1){
-            // Todo: rootPosition will need to be updated for each iteration for tracking
-            rootPosition = findFirstEmptySpot(tempGrid, false);
-            placeAndScore(card, tempGrid, 1, remainingCards, rootPosition, true);
+            rootPosition = bestSpotFound;
+            // EXPECTIMAX otherwise terminalHighScore and chanceCardValue not needed
+            placeAndScore(card, tempGrid, 1, rootPosition, true, 0, 0);
         }
         else{
+            double chanceCardValue = 0.0;
             for(int row = 0; row < SIZE; row++) {
                 for (int col = 0; col < SIZE; col++) {
                     if (grid[row][col] == null) {
@@ -157,50 +182,59 @@ public class SearchTreePlayer implements PokerSquaresPlayer {
                         rootPosition[0] = row;
                         rootPosition[1] = col;
                         System.out.println("OUTER CHECK FOR " + card + " at " + row + ":" + col);
-                        placeAndScore(card, tempGrid, 1, remainingCards, rootPosition, true);
+                        // EXPECTIMAX otherwise don't need returned value
+                        chanceCardValue = placeAndScore(card, tempGrid, 1, rootPosition, true, 0, 0);
+                        // EXPECTIMAX
+                        if(bestScore < chanceCardValue){
+                            bestScore = chanceCardValue;
+                            bestSpotFound = rootPosition;
+                        }
                     }
                 }
             }
+
         }
-        // remove current card from remaining cards in deck
-        removeCardFromRemaining(card, cardsInDeck);
+        return bestSpotFound; // EXPECTIMAX
 
     }
 
 
-    private void placeAndScore(Card card, Card[][] grid, int currentDepth, Card[] remainingCards, int[] rootPosition, boolean placingRoot){
+    private double placeAndScore(Card card, Card[][] grid, int currentDepth, int[] rootPosition, boolean placingRoot, int terminalHighScore, double chanceCardValue){
 
         if(currentDepth >= DEPTH_LIMIT){
-            if(cardsOnGrid < 1 || cardsOnGrid == NUM_POS - 1){
-                return;
+            if(cardsOnGrid < 2 || cardsOnGrid == NUM_POS){
+                // EXPECTIMAX otherwise empty return
+                return chanceCardValue;
             }
             else {
                 for (int row = 0; row < SIZE; row++) {
                     for (int col = 0; col < SIZE; col++) {
                         if (grid[row][col] == null && card != null) {
-                            placeCard(card, row, col, grid);
+                            placeCard(card, row, col, grid); // MAX NODE
                             system.printGrid(grid);
                             System.out.println("");
                             if(placingRoot){
-                                scoreGrid(row, col, grid);
+                                // EXPECTIMAX otherwise can use scoreGrid()
+                                scoreGridDirectly(row, col, grid); // Only when DEPTH_LIMIT == 1
                             }
                             else{
-                                scoreGrid(rootPosition[0], rootPosition[1], grid);
+                                terminalHighScore = scoreGrid(rootPosition[0], rootPosition[1], grid, terminalHighScore); // EXPECTIMAX
                             }
                             removeCard(row, col, grid);
                         }
                     }
                 }
+                chanceCardValue += terminalHighScore * (1/(NUM_CARDS-cardsOnGrid)); // EXPECTIMAX
             }
         }
         else{
-            placeCard(card, rootPosition[0], rootPosition[1], grid);
+            placeCard(card, rootPosition[0], rootPosition[1], grid); // place root card: INITIAL MAX NODE if DEPTH_LIMIT > 1
             currentDepth ++;
-            for (int i = 0; i < remainingCards.length/3; i++) {
-                placeAndScore(remainingCards[i], grid, currentDepth, remainingCards, rootPosition, false);
+            for (int i = 0; i < cardsInDeck.length/3; i++) {
+                placeAndScore(cardsInDeck[i], grid, currentDepth, rootPosition, false, 0, chanceCardValue); // CHANCE NODE for next card picked
             }
         }
-
+        return chanceCardValue; // EXPECTIMAX
     }
 
 
