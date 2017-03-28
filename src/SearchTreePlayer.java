@@ -45,15 +45,10 @@ public class SearchTreePlayer implements PokerSquaresPlayer {
         initializeBestScorePosition(grid);
         cardsOnGrid++;
 
-        // EXPECTIMAX otherwise don't need return value
-        int[] bestPosition = depthSearch(card);
+        depthSearch(card);
 
         placeCard(card, bestScoreAndPosition[0], bestScoreAndPosition[1], grid); // Place card on main grid
         int[] playPosition = {bestScoreAndPosition[0], bestScoreAndPosition[1]};
-
-// EXPECTIMAX
-//        placeCard(card, bestPosition[0], bestPosition[1], grid); // Place card on main grid
-//        int[] playPosition = {bestPosition[0], bestPosition[1]};
 
         return playPosition;
 
@@ -82,32 +77,13 @@ public class SearchTreePlayer implements PokerSquaresPlayer {
         bestScoreAndPosition[2] = 0;
     }
 
-    private void scoreGridDirectly(int row, int col, Card[][] grid){
+    private void scoreGrid(int row, int col, Card[][] grid){
         int stateScore = system.getScore(grid);
         if (bestScoreAndPosition[2] < stateScore){
             bestScoreAndPosition[0] = row;
             bestScoreAndPosition[1] = col;
             bestScoreAndPosition[2] = stateScore;
         }
-    }
-
-    // This method gets hit for every terminal node
-    // EXPECTIMAX
-    private int scoreGrid(int row, int col, Card[][] grid, int terminalHighScore){
-        int stateScore = system.getScore(grid);
-
-        if(terminalHighScore < stateScore){
-            terminalHighScore = stateScore;
-        }
-
-
-        if (bestScoreAndPosition[2] < stateScore){
-            bestScoreAndPosition[0] = row;
-            bestScoreAndPosition[1] = col;
-            bestScoreAndPosition[2] = stateScore;
-        }
-
-        return terminalHighScore;
     }
 
     private int[] findFirstEmptySpot(Card[][] grid, boolean random){
@@ -152,26 +128,20 @@ public class SearchTreePlayer implements PokerSquaresPlayer {
         return remainingCards;
     }
 
-    private int[] depthSearch(Card card){
+    private void depthSearch(Card card){
 
         Card[][] tempGrid = copyGrid(grid);
-
-        System.out.println("NEXT PLAY GRID STATE WITH CARD " + card);
 
         // remove current card from remaining cards in deck
         removeCardFromRemaining(card, cardsInDeck);
 
-//        int[] rootPosition = findFirstEmptySpot(grid, true);
-//        int[] bestSpotFound = placeAndScore(card, card, tempGrid, 1, remainingCards, rootPosition);
-
         int[] rootPosition = new int[2];
         int[] bestSpotFound = findFirstEmptySpot(tempGrid, false);
-        double bestScore = 0.0; // EXPECTIMAX
+
 
         if(DEPTH_LIMIT==1){
             rootPosition = bestSpotFound;
-            // EXPECTIMAX otherwise terminalHighScore and chanceCardValue not needed
-            placeAndScore(card, tempGrid, 1, rootPosition, true, 0, 0);
+            placeAndScore(card, tempGrid, 1, rootPosition, true);
         }
         else{
             double chanceCardValue = 0.0;
@@ -181,60 +151,52 @@ public class SearchTreePlayer implements PokerSquaresPlayer {
                         removeCard(rootPosition[0], rootPosition[1], tempGrid);
                         rootPosition[0] = row;
                         rootPosition[1] = col;
-                        System.out.println("OUTER CHECK FOR " + card + " at " + row + ":" + col);
-                        // EXPECTIMAX otherwise don't need returned value
-                        chanceCardValue = placeAndScore(card, tempGrid, 1, rootPosition, true, 0, 0);
-                        // EXPECTIMAX
-                        if(bestScore < chanceCardValue){
-                            bestScore = chanceCardValue;
-                            bestSpotFound = rootPosition;
-                        }
+
+                        placeAndScore(card, tempGrid, 1, rootPosition, true);
+
                     }
                 }
             }
 
         }
-        return bestSpotFound; // EXPECTIMAX
+
 
     }
 
 
-    private double placeAndScore(Card card, Card[][] grid, int currentDepth, int[] rootPosition, boolean placingRoot, int terminalHighScore, double chanceCardValue){
+    private void placeAndScore(Card card, Card[][] grid, int currentDepth, int[] rootPosition, boolean placingRoot){
 
         if(currentDepth >= DEPTH_LIMIT){
             if(cardsOnGrid < 2 || cardsOnGrid == NUM_POS){
-                // EXPECTIMAX otherwise empty return
-                return chanceCardValue;
+                return;
             }
             else {
                 for (int row = 0; row < SIZE; row++) {
                     for (int col = 0; col < SIZE; col++) {
                         if (grid[row][col] == null && card != null) {
                             placeCard(card, row, col, grid); // MAX NODE
-                            system.printGrid(grid);
-                            System.out.println("");
+//                            // This effects performance so don't use this for real. You'll need to lower the number of chance cards or player will run out of time
+//                            system.printGrid(grid);
+//                            System.out.println("");
                             if(placingRoot){
-                                // EXPECTIMAX otherwise can use scoreGrid()
-                                scoreGridDirectly(row, col, grid); // Only when DEPTH_LIMIT == 1
+                                scoreGrid(row, col, grid); // Only when DEPTH_LIMIT == 1
                             }
                             else{
-                                terminalHighScore = scoreGrid(rootPosition[0], rootPosition[1], grid, terminalHighScore); // EXPECTIMAX
+                                scoreGrid(rootPosition[0], rootPosition[1], grid);
                             }
                             removeCard(row, col, grid);
                         }
                     }
                 }
-                chanceCardValue += terminalHighScore * (1/(NUM_CARDS-cardsOnGrid)); // EXPECTIMAX
             }
         }
         else{
             placeCard(card, rootPosition[0], rootPosition[1], grid); // place root card: INITIAL MAX NODE if DEPTH_LIMIT > 1
             currentDepth ++;
-            for (int i = 0; i < cardsInDeck.length/3; i++) {
-                placeAndScore(cardsInDeck[i], grid, currentDepth, rootPosition, false, 0, chanceCardValue); // CHANCE NODE for next card picked
+            for (int i = 0; i < cardsInDeck.length; i++) {
+                placeAndScore(cardsInDeck[i], grid, currentDepth, rootPosition, false); // CHANCE NODE for next card picked
             }
         }
-        return chanceCardValue; // EXPECTIMAX
     }
 
 
